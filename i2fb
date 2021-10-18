@@ -1,0 +1,244 @@
+#!/bin/bash
+# i2fb is a wrapper for ImageMagicks "convert" command and allows to easily
+# render a wide varienty of image formats and send the result to the frame-
+# buffer of a Raspberry Pi. It takes care of screen / framebuffer resolution
+# and screen # rotation set using the display_rotate option in /boot/config.txt
+#
+# Written by Matthias Aebi, October 2021
+
+I2FB_VERSION=0.9
+
+FILL="" # no screen filling
+ROTATE="" # no rotation
+ZOOM="" # no zooming
+FBUF="/dev/fb0"
+BGCOLOR="gray"
+
+CONVERT="/usr/bin/convert"
+IDENTIFY="/usr/bin/identify"
+
+#----------------------------------------------------------------------------
+ function usage {
+#----------------------------------------------------------------------------
+   echo "Usage i2fb V${I2FB_VERSION}: i2fb [options] <image-filepath>"
+   exit 1
+} # usage
+
+#----------------------------------------------------------------------------
+ function help {
+#----------------------------------------------------------------------------
+  echo "
+Help for dkr V${I2FB_VERSION}:
+
+  i2fb [options] <image-filepath>
+
+  -b | --bgcolor <color>
+
+    The color to be used to fill areas not covered by the image. Use any
+    common CSS color format.
+
+  -f | --fill <fill-target>
+
+    image   Makes sure the entire image is shown while using the available
+            size of the screen as much as possible
+
+    width   Makes sure the image to be shown fills the entire width of the
+            screen taking any rotation configured into account. The image
+            will be centered on the screen and excess parts that can not
+            be shown at the zoom factor needed to fill the screen in width
+            will not be visible.
+
+    height  Makes sure the image to be shown fills the entire height of
+            the screen taking any rotation configured into account. The
+            image will be centered on the screen and excess parts that
+            can not be shown at the zoom factor needed to fill the screen
+            in height will not be visible. 
+
+    screen  Makes sure the image to be shown fills the entire height and
+            width of the screen taking any rotation configured into account.
+            The image will be centered on the screen and excess parts that
+            can not be shown at the zoom factor needed to fill height and
+            width of the screen will not be visible.
+  
+  -h | --help
+
+    Show this information about i2fb parameters
+
+  -r | --rotate <degrees>
+
+    Rotate the image clockwise after taking into account any rotation
+    configured for the screen in /boot/config.txt using the
+    'display_rotate' option.
+ 
+  -z | --zoom <percentage> | <bounding-box>
+
+    Zoom the image by the percentage given or make sure the image fits into
+    the bounding box given. The image will be centered on the screen and
+    excess parts that can not be shown will not be visible."
+
+  echo
+  exit 0
+} # help
+
+#----------------------------------------------------------------------------
+ function get_dimensions {
+#----------------------------------------------------------------------------
+# Get the height and (actual) width of the image and the framebuffer
+  FBDEPTH=$(/usr/bin/fbset | grep geometry | tr -s ' ' | cut -d' ' -f7)
+
+  FBWIDTH=$(/usr/bin/fbset | grep geometry | tr -s ' ' | cut -d' ' -f3)
+  FBHEIGHT=$(/usr/bin/fbset | grep geometry | tr -s ' ' | cut -d' ' -f4)
+
+  if [ $FBWIDTH -gt $FBHEIGHT ]; then
+    AFBWIDTH=$FBWIDTH
+    AFBHEIGHT=$(echo "$(cat $FBUF | wc -c)/$FBWIDTH/($FBDEPTH/8)" | bc)
+  else
+    AFBWIDTH=$(echo "$(cat $FBUF | wc -c)/$FBHEIGHT/($FBDEPTH/8)" | bc)
+    AFBHEIGHT=$FBHEIGHT
+  fi
+
+  IMGHEIGHT=$($IDENTIFY -format '%h' $IMAGE)
+  IMGWIDTH=$($IDENTIFY -format '%w' $IMAGE)
+
+  # echo "$FBHEIGHT $AFBHEIGHT / $FBWIDTH $AFBHEIGHT / $FBDEPTH / $IMGHEIGHT $IMGWIDTH"
+} # get_dimensions
+
+#----------------------------------------------------------------------------
+ function test_imagemagick {
+#----------------------------------------------------------------------------
+  dpkg -s imagemagick > /dev/null 2>&1;
+  if [ $? -gt 0 ]; then
+    echo "Imagemagick must be installed to use i2fb - use 'sudo apt install imagemagick' to do so"
+    exit
+  fi
+} # test_imagemagick
+
+#----------------------------------------------------------------------------
+ function test_image {
+#----------------------------------------------------------------------------
+# Make sure we got an image file IM can handle
+  [ -z $IMAGE ] && usage
+  $IDENTIFY "$IMAGE" >/dev/null 2>&1
+  if [ $? -gt 0 ]; then
+    echo "$IMAGE is not an image file recognized by ImageMagick"
+    exit 1
+  fi
+} # test_image
+
+#----------------------------------------------------------------------------
+ function clear_buffer {
+#----------------------------------------------------------------------------
+  dd if=/dev/zero of=$FBUF > /dev/null 2>&1
+} # clear_buffer
+
+#----------------------------------------------------------------------------
+# main
+#----------------------------------------------------------------------------
+# Get the last argument supposed to be the path of the image file if any
+
+test_imagemagick
+
+while getopts "b:f:hr:z:-:" optchar; do
+  case $optchar in
+    b)
+      BGCOLOR="$OPTARG"
+      ;;
+
+    f)
+      FILL="$OPTARG"
+      if [[ ! $FILL =~ ^(image|width|height|screen)$ ]]; then
+        echo "Fill mode (-f) must be 'image', 'width', 'height' or 'screen'"
+        exit 1
+      fi;;
+
+    h)
+      help;;
+
+    r)
+      ROTATE="$OPTARG"
+      if [[ ! $ROTATE =~ ^[0-9]+$ ]]; then
+        echo "Rotation (-r) must be a number"
+        exit 1
+      fi;;
+
+    z)
+      ZOOM="$OPTARG"
+      if [[ ! $ZOOM =~ ^([0-9]+%|[0-9]+x[0-9]+)$ ]]; then
+        echo "Zoom (-z) must be <percentage>% or <height>x<width>"
+        exit 1
+      fi;;
+
+    -)
+      case "${OPTARG}" in
+        bgcolor)
+          BGCOLOR=${!OPTIND};;
+
+        fill)
+          FILL=${!OPTIND};;
+
+        help)
+          help;;
+
+        rotate)
+          ROTATE=${!OPTIND};;
+
+        zoom)
+          ZOOM=${!OPTIND};;
+
+        *) usage;;
+      esac
+      ((OPTIND=OPTIND+1));;
+
+    \? ) usage;;
+  esac
+done
+shift $((OPTIND -1))
+
+IMAGE=$1
+test_image
+get_dimensions
+
+# Please note that the order of the parameters is relevant
+CMD="$CONVERT"
+
+[ ! -z "$ROTATE" ] && CMD="$CMD -rotate $ROTATE"
+
+if [ $FILL ]; then
+  hzoom=$(echo "100*$FBHEIGHT/$IMGHEIGHT+1" | bc)
+  wzoom=$(echo "100*$FBWIDTH/$IMGWIDTH+1" | bc)
+
+  case ${FILL} in
+    image)
+      if [ $hzoom -lt $wzoom ]; then
+        zoom=$hzoom
+      else
+        zoom=$wzoom
+      fi;;
+
+    width)
+      zoom=$wzoom;;
+
+    height)
+      zoom=$hzoom;;
+
+    screen)
+      if [ $hzoom -gt $wzoom ]; then
+        zoom=$hzoom
+      else
+        zoom=$wzoom
+      fi;;
+  esac
+  CMD="$CMD -resize $zoom%"
+
+  [ $ZOOM ] && echo "Ignoring --zoom $ZOOM as --fill $FILL is used instead"
+else
+  [ ! -z "$ZOOM" ] && CMD="$CMD -resize $ZOOM"
+fi
+
+
+clear_buffer
+
+# Complete and run the command
+CMD="$CMD -background \"$BGCOLOR\" -extent ${AFBWIDTH}x${AFBHEIGHT} -gravity center $IMAGE bgra:$FBUF"
+# echo "$CMD"
+eval "$CMD"
