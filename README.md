@@ -67,7 +67,7 @@ Using the frambuffer is almost the opposite as it provides simple access ot a pa
 
 ### Existing Software
 
-When it comes to rendering images directly into a framebuffer most [people either point](https://forums.raspberrypi.com/viewtopic.php?t=130059) to `[fbi](http://manpages.ubuntu.com/manpages/bionic/man1/fbi.1.html)` or or to the «improved version of fbi» called `[fim](http://manpages.ubuntu.com/manpages/bionic/man1/fim.1.html)`. While `fbi` seriously lacks a reasonable concept for zooming, `fim` would fix all of these flaws but needs to be compiled which does not seem possible anymore with current tools and libaries.
+When it comes to rendering images directly into a framebuffer most [people either point](https://forums.raspberrypi.com/viewtopic.php?t=130059) to [fbi](http://manpages.ubuntu.com/manpages/bionic/man1/fbi.1.html) or or to the «improved version of fbi» called [fim](http://manpages.ubuntu.com/manpages/bionic/man1/fim.1.html). While `fbi` seriously lacks a reasonable concept for zooming, `fim` would fix all of these flaws but needs to be compiled which does not seem possible anymore with current tools and libaries.
 
 ### Basics of i2fb
 
