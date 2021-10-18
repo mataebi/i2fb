@@ -67,15 +67,15 @@ Using the frambuffer is almost the opposite as it provides simple access ot a pa
 
 ### Existing Software
 
-When it comes to rendering images directly into a framebuffer most [people either point](https://forums.raspberrypi.com/viewtopic.php?t=130059) to [fbi](http://manpages.ubuntu.com/manpages/bionic/man1/fbi.1.html) or or to the «improved version of fbi» called [fim](http://manpages.ubuntu.com/manpages/bionic/man1/fim.1.html). While fbi seriously lacks a reasonable concept for zooimg, fim would fix all of these flaws but needs to be compiled which does not seem possible anymore with current tools and libaries.
+When it comes to rendering images directly into a framebuffer most [people either point](https://forums.raspberrypi.com/viewtopic.php?t=130059) to `[fbi](http://manpages.ubuntu.com/manpages/bionic/man1/fbi.1.html)` or or to the «improved version of fbi» called `[fim](http://manpages.ubuntu.com/manpages/bionic/man1/fim.1.html)`. While `fbi` seriously lacks a reasonable concept for zooming, `fim` would fix all of these flaws but needs to be compiled which does not seem possible anymore with current tools and libaries.
 
 ### Basics of i2fb
 
-This is where i2fb comes in which is basically a simple wrapper for the widely used and very powerful [ImageMagick](http://www.imagemagick.org/script/index.php) software that not only claims to be able to convert more than 200 image formats but also allows complex image transformations with a few commands and parameters on the command line. Its main command convert can be used to render an image available in any of the formats supported by ImageMagick directly into a bitmap that can be written directly to the frame buffer.
+This is where `i2fb` comes in which is basically a simple wrapper for the widely used and very powerful [ImageMagick](http://www.imagemagick.org/script/index.php) software that not only claims to be able to convert [more than 200 image formats](http://www.imagemagick.org/script/formats.php) but also allows complex image transformations with a few commands and parameters on the command line. Its main command `convert` can be used to render an image available in any of the formats supported by ImageMagick directly into a bitmap that can be written directly to the frame buffer.
 
 To install ImageMagick which is the foundation of i2fb install it first using the following command
 ```
-sudo apt install imagemagick
+sudo apt update && sudo apt install imagemagick
 ```
 The next step is to make sure your HDMI screen and framebuffer are properly setup. Instead of the 1920 x 1080 pixel resolution used in the examples below you may of course use any other resolution. However, in these cases you will have to calculate and adjust the zoom values accordingly to use the examples manually. But of course if you use i2fb instead of using the explcit example commands given below, the software will take care of that for you.
 
@@ -98,7 +98,7 @@ hdmi_drive=2
 ```
 Please note you have to reboot your machine after changing any of these settings.
 
-The command below, used to decode and transfer the sample image to the framebuffer, assumes you have set your HDMI output to 1920x1080 pixels and that your screen is not rotated at this point (i.e. there is no active display_rotate=... configuration except display_rotate=0 which sets «no rotation») If those settings are correct you shout get the following results for the  tvservice -s command showing HDMI settings and fbset showing the frame buffer configuration
+The command below, used to decode and transfer the sample image to the framebuffer, assumes you have set your HDMI output to 1920x1080 pixels and that your screen is not rotated at this point (i.e. there is no active display_rotate=... configuration except `display_rotate=0` which sets «no rotation») If those settings are correct you shout get the following results for the `tvservice -s` command showing HDMI settings and  `fbset` showing the frame buffer configuration
 ```
 $ tvservice -s
 state 0xa [HDMI DMT (82) RGB full 16:9], 1920x1080 @ 60.00Hz, progressive
@@ -111,7 +111,7 @@ mode "1920x1080"
     rgba 8/16,8/8,8/0,8/24
 endmode
 ```
-Make sure the HDMI settings as well as the framebuffer configuration use 32 Bit / pixel  (RGB + Transparency) as otherwise the encoding of the bits in the framebuffer uses a different and rather complex format.
+Make sure the HDMI settings as well as the framebuffer configuration use 32 Bit / pixel (RGB + Transparency) as otherwise the encoding of the bits in the framebuffer uses a different and rather complex format.
 
 ### Showing Images manually
 
