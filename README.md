@@ -49,11 +49,13 @@ Use the following command to get a list of all options that are available:
 i2fb --help
 ```
 ### Test i2fb
+<img src="img/sample8.jpg" height="150px" align="left"/>
+
 Test the i2fb installation using the following command:
 ```
 i2fb -f image -r 45 /opt/i2fb/squares.jpg
 ```
-You should see four colored squares rotated at 45 degrees in the middle of the screen with two corners touching the edges. The rectangles should be drawn on a gray background.
+You should see the four colored squares rotated at 45 degrees in the middle of the screen with two corners touching the edges as shown on the left. The rectangles should be drawn on a gray background.
 
 ## How i2fb works
 
