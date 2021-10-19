@@ -32,10 +32,9 @@ sudo apt update && sudo apt install imagemagick
 ``` 
 
 ### Allow hiding the blinkig cursor
-The text console usually shows a blinking cursor. In order to allow i2fb to turn this off, it is neccessary to adjust the access rights of the special file used for that. Do do this, execute the following command once:
+The text console usually shows a blinking cursor. In order to allow i2fb to turn this off, it is neccessary to adjust the access rights of the special file used for that. To add this command to a startup file, execute the following command once:
 ```
-sudo chmod a+w /sys/class/graphics/fbcon/cursor_blink
-```
+echo -e "$(head -n -1 /etc/rc.local)\n\nchmod a+w /sys/class/graphics/fbcon/cursor_blink\n\n$(tail -1 /etc/rc.local)" | sudo tee /etc/rc.local > /dev/null```
 
 ### Install i2fb
 Now download the `i2fb` script to your machine and add a link that makes it available as a command line tool:
