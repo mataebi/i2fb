@@ -176,3 +176,9 @@ Combining some of the parameters can produce quite nice results
 ```
 convert -rotate 45 -resize 1080x1920 -extent 1088x1920 -background gray -gravity center /opt/i2fb/squares.jpg bgra:/dev/fb0
 ```
+To grab the framebuffer and turn it into a JPEG screenshot image to be downloaded using a browser afterwards use the following commands
+```
+convert -size 1088x1920 -depth 8 bgra:/dev/fb0 -resize 50% screenshot.jpg
+python -m SimpleHTTPServer 8000
+```
+Now use the URL http://&lt;ip-address-of-rpi&gt;:8000 to download your screenshot
