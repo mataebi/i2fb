@@ -1,6 +1,6 @@
 # i2fb
 
-This repository provides `i2fb`, a simple and straightforward tool to display images on the screen of a Raspberry Pi using its framebuffer only and therefore without the need to run any window system / desktop software like X.
+<img src="img/sample8.jpg" width="100px" align="left"/> This repository provides `i2fb`, a simple and straightforward tool to display images on the screen of a Raspberry Pi using its framebuffer only and therefore without the need to run any window system / desktop software like X.
 
 ## Using i2fb
 
@@ -116,17 +116,20 @@ Make sure the HDMI settings as well as the framebuffer configuration use 32 Bit 
 ### Showing Images manually
 
 Once you have configured your hardware as described above to use full HD without rotation you may try the commands below to see how decoding and sending an image works using ImageMagicks convert command. To just show our example image on the screen without scaling it in any way use the following command:
-```
-convert -extent 1920x1080 -background gray -gravity center /opt/i2fb/squares.jpg bgra:/dev/fb0
-```
+
+<table><tr><td><img src="img/sample1.jpg" width="200px"/></td>
+<td><pre><code>convert -extent 1920x1080 -background gray -gravity center \
+/opt/i2fb/squares.jpg bgra:/dev/fb0</code></pre></td></tr></table>
+
 Given the size of the image being 200x200 pixels the factor needed to scale the image to fill the height of the screen is easily calculated as 1080 (screen height) / 200 (height of image) = 5.4 = 540%
-```
-convert -resize 540% -extent 1920x1080 -background gray -gravity center /opt/i2fb/squares.jpg bgra:/dev/fb0
-```
+<table><tr><td><img src="img/sample2.jpg" width="200px"/></td>
+<td><pre><code>convert -resize 540% -extent 1920x1080 -background gray \
+-gravity center /opt/i2fb/squares.jpg bgra:/dev/fb0</code></pre></td></tr></table>
+
 In order to have the image scaled to fill the entire screen use the width of the screen and calculate 1920 / 200 = 9.6 = 960%
-```
-convert -resize 960% -extent 1920x1080 -background gray -gravity center /opt/i2fb/squares.jpg bgra:/dev/fb0
-```
+<table><tr><td><img src="img/sample3.jpg" width="200px"/></td>
+<td><pre><code>convert -resize 960% -extent 1920x1080 -background gray \
+-gravity center/opt/i2fb/squares.jpg bgra:/dev/fb0</code></pre></td></tr></table>
 
 ### Rotated screen
 
@@ -143,9 +146,10 @@ Unfortunately things get slightly more tricky when using screen rotation as it i
 While the above convert examples work as expected when using display_rotate=0 or display_rotate=2 you might get a rather unexpected results if you use them in Portrait mode. Try setting display_rotate to 1 or 3 and reboot your machine. You might also want to physically rotate your monitor to be able to read any console output mor easily.
 
 Now try the the same convert commands as above using
-```
-convert -extent 1920x1080 -background gray -gravity center /opt/i2fb/squares.jpg bgra:/dev/fb0
-```
+<table><tr><td><img src="img/sample4.jpg" width="113px"/></td>
+<td><pre><code>convert -extent 1920x1080 -background gray -gravity center \
+/opt/i2fb/squares.jpg bgra:/dev/fb0</code></pre></td></tr></table>
+
 All you see is garbage as because of rotation your framebuffer has been rotated as well which is why fbset will give you height and width swapped (compare the answer below with the results we got before)
 ```
 $ fbset
@@ -156,27 +160,33 @@ mode "1080x1920"
 endmode
 ```
 So you would expect to just have to swap the two values for width and height in the convert command and use
-```
-convert -extent 1080x1920 -background gray -gravity center /opt/i2fb/squares.jpg bgra:/dev/fb0
-```
+<table><tr><td><img src="img/sample5.jpg" width="113px"/></td>
+<td><pre><code>convert -extent 1080x1920 -background gray -gravity center \
+/opt/i2fb/squares.jpg bgra:/dev/fb0</code></pre></td></tr></table>
+
 Unfortunately, depending on the exact version of the hard and software you are using you might see a distored image instead of what you wanted. Looking at this phenomenon a bit closer it turns out that the actual framebuffer size may be slightly different from what fbset shows. This can be seen when loading the content of the framebuffer and counting the number of bytes it contains. Use the following command to get this number
 ```
 cat /dev/fb0 | wc -c
 8355840
 ```
 This result is larger than what you get if you multiply the number of pixels with 4 Bytes per pixel (1080 x 1920 x 4 = 8294400) If you divide the result by the height of the screen (1920) and the number of Bytes per pixel (8355840 / 1920 / 4) the result is 1088 instead of the expected 1080. This result reflects the actual width of the framebuffer which is why it has to be used in the convert command to get an undistorted picture on your screen
-```
-convert -extent 1088x1920 -background gray -gravity center /opt/i2fb/squares.jpg bgra:/dev/fb0
-```
+
+<table><tr><td><img src="img/sample6.jpg" width="113px"/></td>
+<td><pre><code>convert -extent 1088x1920 -background gray -gravity center \
+/opt/i2fb/squares.jpg bgra:/dev/fb0</code></pre></td></tr></table>
+
 This also works with scaling a expected
-```
-convert -resize 540% -extent 1088x1920 -background gray -gravity center /opt/i2fb/squares.jpg bgra:/dev/fb0
-```
+<table><tr><td><img src="img/sample7.jpg" width="113px"/></td>
+ <td><pre><code>convert -resize 540% -extent 1088x1920 -background gray \
+-gravity center /opt/i2fb/squares.jpg bgra:/dev/fb0</code></pre></td></tr></table>
+
 Combining some of the parameters can produce quite nice results
-```
-convert -rotate 45 -resize 1080x1920 -extent 1088x1920 -background gray -gravity center /opt/i2fb/squares.jpg bgra:/dev/fb0
-```
-To grab the framebuffer and turn it into a JPEG screenshot image to be downloaded using a browser afterwards use the following commands
+<table><tr><td><img src="img/sample8.jpg" width="113px"/></td>
+<td style="min-width:800px"><pre><code>convert -rotate 45 -resize 1080x1920 -extent 1088x1920 \
+-background gray -gravity center /opt/i2fb/squares.jpg bgra:/dev/fb0</code></pre></td></tr></table>
+
+### Screenshot
+To grab the framebuffer and turn it into a JPEG screenshot image to be downloaded using a browser afterwards use the following commands (assuming you are using a portrait 1080x1920 screen)
 ```
 convert -size 1088x1920 -depth 8 bgra:/dev/fb0 -resize 50% screenshot.jpg
 python -m SimpleHTTPServer 8000
