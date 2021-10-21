@@ -13,9 +13,12 @@ ROTATE="" # no rotation
 ZOOM=""   # no zooming
 FBUF="/dev/fb0"
 COLOR="gray"
+DEBUG="1"
 
 CONVERT="/usr/bin/convert"
 IDENTIFY="/usr/bin/identify"
+
+[ ! -z $DEBUG ] && echo "i2fb: $0 $@"
 
 #----------------------------------------------------------------------------
  function usage {
@@ -105,10 +108,10 @@ Help for dkr V${I2FB_VERSION}:
     AFBHEIGHT=$FBHEIGHT
   fi
 
-  IMGHEIGHT=$($IDENTIFY -format '%h' $IMAGE)
-  IMGWIDTH=$($IDENTIFY -format '%w' $IMAGE)
+  IMGHEIGHT=$($IDENTIFY -format '%h' ${IMAGE}[0])
+  IMGWIDTH=$($IDENTIFY -format '%w' ${IMAGE}[0])
 
-  # echo "$FBHEIGHT $AFBHEIGHT / $FBWIDTH $AFBHEIGHT / $FBDEPTH / $IMGHEIGHT $IMGWIDTH"
+  [ ! -z $DEBUG ] && echo "i2fb: $FBHEIGHT $AFBHEIGHT / $FBWIDTH $AFBHEIGHT / $FBDEPTH / $IMGHEIGHT $IMGWIDTH"
 } # get_dimensions
 
 #----------------------------------------------------------------------------
