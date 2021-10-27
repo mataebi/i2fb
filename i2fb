@@ -295,13 +295,13 @@ Help for dkr V${I2FB_VERSION}:
 
   # Render each image based on the parameters passed
   for N in $(seq 1 $COUNT); do
-    eval "$CMD bgra:$TMPDIR/img$N.bgra bgra:$PLAYDIR/img$N.bgra"
+    eval "nice $CMD bgra:$TMPDIR/img$N.bgra bgra:$PLAYDIR/img$N.bgra"
   done
 
   # Play all images prepared in the PLAYDIR
   while [ 1 ]; do
     for N in $(seq 0 $COUNT); do
-      cat $PLAYDIR/img${N}.bgra > $FBUF
+      nice cat $PLAYDIR/img${N}.bgra > $FBUF
     done
   done
 } # show_animation
