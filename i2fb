@@ -6,7 +6,7 @@
 #
 # (C) Matthias Aebi, October 2021
 
-I2FB_VERSION=1.0.1
+I2FB_VERSION=1.0.2
 
 FILL=""   # no screen filling
 ROTATE="" # no rotation
@@ -283,7 +283,8 @@ Help for dkr V${I2FB_VERSION}:
 #----------------------------------------------------------------------------
   rm -rf $TMPDIR; mkdir -p $TMPDIR
   # Extract the all images from the animation
-  echo "$IMAGE" | $CONVERT - -coalesce +adjoin bgra:$TMPDIR/img%d.bgra
+  [ ! -z $DEBUG ] && echo "i2fb: Extracting $COUNT frames from animation image"
+  cat "$IMAGE" | nice $CONVERT - -coalesce +adjoin bgra:$TMPDIR/img%d.bgra
 
   CMD="$CMD -background \"$COLOR\" -extent ${AFBWIDTH}x${AFBHEIGHT} \
        -gravity center -size ${IMGWIDTH}x${IMGHEIGHT} -depth 8"
@@ -294,11 +295,16 @@ Help for dkr V${I2FB_VERSION}:
   cat $PLAYDIR/img$N.bgra > $FBUF
 
   # Render each image based on the parameters passed
+  [ ! -z $DEBUG ] && echo "i2fb: Converting animation images"
   for N in $(seq 1 $COUNT); do
     eval "nice $CMD bgra:$TMPDIR/img$N.bgra bgra:$PLAYDIR/img$N.bgra"
   done
 
+  # Exit if we have no files to play
+  [ ! -r $PLAYDIR/img0.bgra ] && exit 1
+
   # Play all images prepared in the PLAYDIR
+  [ ! -z $DEBUG ] && echo "i2fb: Playing animation images"
   while [ 1 ]; do
     for N in $(seq 0 $COUNT); do
       nice cat $PLAYDIR/img${N}.bgra > $FBUF
@@ -309,24 +315,23 @@ Help for dkr V${I2FB_VERSION}:
 #----------------------------------------------------------------------------
 # main
 #----------------------------------------------------------------------------
+  test_imagemagick
 
-test_imagemagick
+  get_parameters $@
+  test_parameters
+  test_image
 
-get_parameters $@
-test_parameters
-test_image
+  get_dimensions
+  create_command
 
-get_dimensions
-create_command
+  # clear_buffer
+  hide_cursor
 
-# clear_buffer
-hide_cursor
-
-COUNT=$(( $(cat "$IMAGE" | $IDENTIFY - | wc -l) - 1))
-if [ $COUNT -gt 1 ]; then
-  show_animation
-else
-  # Complete and run the command
-  CMD="cat "$IMAGE" | $CMD -background \"$COLOR\" -extent ${AFBWIDTH}x${AFBHEIGHT} -gravity center - bgra:$FBUF"
-  eval "$CMD"
-fi
+  COUNT=$(( $(cat "$IMAGE" | $IDENTIFY - | wc -l) - 1))
+  if [ $COUNT -gt 1 ]; then
+    show_animation
+  else
+    # Complete and run the command
+    CMD="cat "$IMAGE" | $CMD -background \"$COLOR\" -extent ${AFBWIDTH}x${AFBHEIGHT} -gravity center - bgra:$FBUF"
+    eval "$CMD"
+  fi
