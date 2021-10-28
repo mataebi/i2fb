@@ -4,9 +4,9 @@
 # buffer of a Raspberry Pi. It takes care of screen / framebuffer resolution
 # and screen # rotation set using the display_rotate option in /boot/config.txt
 #
-# Written by Matthias Aebi, October 2021
+# (C) Matthias Aebi, October 2021
 
-I2FB_VERSION=1.0
+I2FB_VERSION=1.0.1
 
 FILL=""   # no screen filling
 ROTATE="" # no rotation
@@ -30,7 +30,7 @@ TMPDIR=/tmp/i2fb
 #----------------------------------------------------------------------------
  function usage {
 #----------------------------------------------------------------------------
-   echo "Usage i2fb V${I2FB_VERSION}: i2fb [options] <image-filepath>"
+   echo "Usage i2fb V${I2FB_VERSION}: i2fb [options] <image-filepath>" >&2
    exit 1
 } # usage
 
@@ -115,8 +115,8 @@ Help for dkr V${I2FB_VERSION}:
     AFBHEIGHT=$FBHEIGHT
   fi
 
-  IMGHEIGHT=$($IDENTIFY -format '%h' ${IMAGE}[0])
-  IMGWIDTH=$($IDENTIFY -format '%w' ${IMAGE}[0])
+  IMGHEIGHT=$(cat "$IMAGE" | $IDENTIFY -format '%h' -[0])
+  IMGWIDTH=$(cat "$IMAGE" | $IDENTIFY -format '%w' -[0])
 
   [ ! -z $DEBUG ] && echo "i2fb: $FBHEIGHT $AFBHEIGHT / $FBWIDTH $AFBHEIGHT / $FBDEPTH / $IMGHEIGHT $IMGWIDTH"
 } # get_dimensions
@@ -126,8 +126,8 @@ Help for dkr V${I2FB_VERSION}:
 #----------------------------------------------------------------------------
   dpkg -s imagemagick > /dev/null 2>&1;
   if [ $? -gt 0 ]; then
-    echo "Imagemagick must be installed to use i2fb - use 'sudo apt install imagemagick' to do so"
-    exit
+    echo "Imagemagick must be installed to use i2fb - use 'sudo apt install imagemagick' to do so" >&2
+    exit 1
   fi
 } # test_imagemagick
 
@@ -136,9 +136,9 @@ Help for dkr V${I2FB_VERSION}:
 #----------------------------------------------------------------------------
 # Make sure we got an image file IM can handle
   [ -z $IMAGE ] && usage
-  $IDENTIFY "$IMAGE" >/dev/null 2>&1
+  cat "$IMAGE" | $IDENTIFY - >/dev/null 2>&1
   if [ $? -gt 0 ]; then
-    echo "$IMAGE is not an image file recognized by ImageMagick"
+    echo "$IMAGE is not an image file recognized by ImageMagick" >&2
     exit 1
   fi
 } # test_image
@@ -204,7 +204,7 @@ Help for dkr V${I2FB_VERSION}:
 #----------------------------------------------------------------------------
 # Make sure all parameters are correct
   if [[ ! $FBUF =~ ^(/dev/fb0|/dev/fb1)$ ]]; then
-    echo "Buffer (-b) must be 'fb0' or 'fb1'"
+    echo "Buffer (-b) must be 'fb0' or 'fb1'" >&2
     exit 1
   fi
 
@@ -214,17 +214,17 @@ Help for dkr V${I2FB_VERSION}:
   fi
 
   if [[ ! $FILL =~ ^(|image|width|height|screen)$ ]]; then
-    echo "Fill mode (-f) must be 'image', 'width', 'height' or 'screen'"
+    echo "Fill mode (-f) must be 'image', 'width', 'height' or 'screen'" >&2
     exit 1
   fi
 
   if [[ ! $ROTATE =~ ^[0-9]*$ ]]; then
-    echo "Rotation (-r) must be a number"
+    echo "Rotation (-r) must be a number" >&2
     exit 1
   fi
 
   if [[ ! $ZOOM =~ ^(|[0-9]+%|[0-9]+x[0-9]+)$ ]]; then
-    echo "Zoom (-z) must be <percentage>% or <height>x<width>"
+    echo "Zoom (-z) must be <percentage>% or <height>x<width>" >&2
     exit 1
   fi
 } # test_parameters
@@ -283,7 +283,7 @@ Help for dkr V${I2FB_VERSION}:
 #----------------------------------------------------------------------------
   rm -rf $TMPDIR; mkdir -p $TMPDIR
   # Extract the all images from the animation
-  $CONVERT $IMAGE -coalesce +adjoin bgra:$TMPDIR/img%d.bgra
+  echo "$IMAGE" | $CONVERT - -coalesce +adjoin bgra:$TMPDIR/img%d.bgra
 
   CMD="$CMD -background \"$COLOR\" -extent ${AFBWIDTH}x${AFBHEIGHT} \
        -gravity center -size ${IMGWIDTH}x${IMGHEIGHT} -depth 8"
@@ -322,11 +322,11 @@ create_command
 # clear_buffer
 hide_cursor
 
-COUNT=$(( $($IDENTIFY $IMAGE | wc -l) - 1))
+COUNT=$(( $(cat "$IMAGE" | $IDENTIFY - | wc -l) - 1))
 if [ $COUNT -gt 1 ]; then
   show_animation
 else
   # Complete and run the command
-  CMD="$CMD -background \"$COLOR\" -extent ${AFBWIDTH}x${AFBHEIGHT} -gravity center $IMAGE bgra:$FBUF"
+  CMD="cat "$IMAGE" | $CMD -background \"$COLOR\" -extent ${AFBWIDTH}x${AFBHEIGHT} -gravity center - bgra:$FBUF"
   eval "$CMD"
 fi
