@@ -38,7 +38,7 @@ TMPDIR=/tmp/i2fb
  function help {
 #----------------------------------------------------------------------------
   echo "
-Help for dkr V${I2FB_VERSION}:
+Help for i2fb V${I2FB_VERSION}:
 
   i2fb [options] <image-filepath>
 
