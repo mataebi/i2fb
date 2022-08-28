@@ -4,9 +4,9 @@
 # buffer of a Raspberry Pi. It takes care of screen / framebuffer resolution
 # and screen # rotation set using the display_rotate option in /boot/config.txt
 #
-# (C) Matthias Aebi, October 2021
+# (C) Matthias Aebi, August 2022
 
-I2FB_VERSION=1.1.0
+I2FB_VERSION=1.1.1
 
 FILL=""   # no screen filling
 ROTATE="" # no rotation
@@ -282,32 +282,44 @@ Help for i2fb V${I2FB_VERSION}:
  function show_animation {
 #----------------------------------------------------------------------------
   rm -rf $TMPDIR; mkdir -p $TMPDIR
-  # Extract the all images from the animation
-  [ ! -z $DEBUG ] && echo "i2fb: Extracting $COUNT frames from animation image"
+
+  # Extract all the images from the animation
+  [ ! -z $DEBUG ] && echo "i2fb: Extracting $COUNT frames from animation image to $TMPDIR"
   cat "$IMAGE" | nice $CONVERT - -coalesce +adjoin bgra:$TMPDIR/img%d.bgra
 
   # Extract the delay for each frame in (fractions) of seconds
+  [ ! -z $DEBUG ] && echo "i2fb: Reading delay for each frame"
   readarray -t <<<$(identify -verbose "$IMAGE" | grep Delay | rev | cut -d" " -f1 | rev | tr 'x' '*' | sed -e 's/$/\/10000/' | bc -l) DELAYS
 
   CMD="$CMD -background \"$COLOR\" -extent ${AFBWIDTH}x${AFBHEIGHT} \
        -gravity center -size ${IMGWIDTH}x${IMGHEIGHT} -depth 8"
 
-  # Convert and show a «poster image» before starting to work on the animation
+  [ ! -z $DEBUG ] && echo "i2fb: Clearing play directory at $PLAYDIR"
   rm -rf $PLAYDIR; mkdir -p $PLAYDIR; N=0
+
+  # Convert and show a «poster image» before starting to work on the animation
+  [ ! -z $DEBUG ] && echo "i2fb: Rendering poster image from $TMPDIR/img$N.bgra to $PLAYDIR/img$N.bgra"
+  [ ! -z $DEBUG ] && echo "i2fb: $CMD bgra:$TMPDIR/img$N.bgra bgra:$PLAYDIR/img$N.bgra"
   eval "$CMD bgra:$TMPDIR/img$N.bgra bgra:$PLAYDIR/img$N.bgra"
+
+  [ ! -z $DEBUG ] && echo "i2fb: Writing poster image from $PLAYDIR/img$N.bgra to framebuffer"
   cat $PLAYDIR/img$N.bgra > $FBUF
 
   # Render each image based on the parameters passed
-  [ ! -z $DEBUG ] && echo "i2fb: Converting animation images"
+  [ ! -z $DEBUG ] && echo "i2fb: Converting $COUNT animation images from $TMPDIR to $PLAYDIR"
   for N in $(seq 1 $COUNT); do
+    [ ! -z $DEBUG ] && echo "i2fb: Rendering image $TMPDIR/img$N.bgra to $PLAYDIR/img$N.bgra"
     eval "nice $CMD bgra:$TMPDIR/img$N.bgra bgra:$PLAYDIR/img$N.bgra"
   done
 
   # Exit if we have no files to play
-  [ ! -r $PLAYDIR/img0.bgra ] && exit 1
+  if [ ! -r $PLAYDIR/img0.bgra ]; then
+    [ ! -z $DEBUG ] && echo "i2fb: Aborting: No images to play at $PLAYDIR"
+    exit 1
+  fi
 
   # Play all images prepared in the PLAYDIR
-  [ ! -z $DEBUG ] && echo "i2fb: Playing animation images"
+  [ ! -z $DEBUG ] && echo "i2fb: Playing $COUNT animation images from $PLAYDIR"
   while [ 1 ]; do
     for N in $(seq 0 $COUNT); do
       nice cat $PLAYDIR/img${N}.bgra > $FBUF
